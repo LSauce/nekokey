@@ -1,5 +1,9 @@
 import { Colors } from '@/constants/Colors';
-import { TimelineEndpoint, useInfiniteTimelines } from '@/hooks/useInfiniteTimelines';
+import {
+  TimelineEndpoint,
+  TimelineParam,
+  useInfiniteTimelines,
+} from '@/hooks/useInfiniteTimelines';
 import useRefresh from '@/hooks/useRefresh';
 import { useTopTabBarHeight } from '@/hooks/useTopTabBarHeight';
 import { useMisskeyStream } from '@/lib/api';
@@ -45,6 +49,7 @@ const TIMELINE_CHANNEL_MAP = {
   'notes/local-timeline': 'localTimeline',
   'notes/hybrid-timeline': 'hybridTimeline',
   'notes/user-list-timeline': 'roleTimeline',
+  'user/notes': 'userTimeline',
 } as const;
 
 const MemoizedNote = memo(Note, (prev, next) => prev.note.id === next.note.id);
@@ -55,14 +60,16 @@ export type TimelineListRef = {
 
 export type TimelineListProps = {
   endpoint: TimelineEndpoint;
+  param: TimelineParam;
   isFocused?: boolean;
 };
 
 const MAX_CACHED_NOTES = 100;
 
 export const TimelineList = forwardRef<TimelineListRef, TimelineListProps>(
-  ({ endpoint, isFocused = true }, ref) => {
-    const query = useInfiniteTimelines(endpoint);
+  ({ endpoint, isFocused = true, param }, ref) => {
+    const { user } = useAuth();
+    const query = useInfiniteTimelines(endpoint, param);
     const topTabBarHeight = useTopTabBarHeight();
     const bottomTabHeight = useBottomTabBarHeight();
     const colorScheme = useColorScheme();
@@ -74,7 +81,6 @@ export const TimelineList = forwardRef<TimelineListRef, TimelineListProps>(
     const scrollOffset = useSharedValue(0);
     const [hasNew, setHasNew] = useState(false);
     const [newNoteIds, setNewNoteIds] = useState<Set<string>>(new Set());
-    const { user } = useAuth();
     const [isOnTop, setIsOnTop] = useState(true);
     const [cachedNotes, setCachedNotes] = useState<NoteType[]>([]);
 
@@ -298,6 +304,34 @@ export const LocalTimeline = memo((props: Omit<TimelineListProps, 'endpoint'>) =
   <TimelineList {...props} endpoint="notes/local-timeline" />
 ));
 LocalTimeline.displayName = 'LocalTimeline';
+
+export const UserTimeline = memo((props: Omit<TimelineListProps, 'endpoint'>) => (
+  <TimelineList
+    {...props}
+    endpoint="users/notes"
+    param={{
+      withFiles: false,
+      withRenotes: false,
+      withReplies: false,
+      userId: useAuth().user.id,
+    }}
+  />
+));
+UserTimeline.displayName = 'UserTimeline';
+
+export const UserAllTimeline = memo((props: Omit<TimelineListProps, 'endpoint'>) => (
+  <TimelineList
+    {...props}
+    endpoint="users/notes"
+    param={{
+      withFiles: false,
+      withRenotes: true,
+      withReplies: true,
+      userId: useAuth().user.id,
+    }}
+  />
+));
+UserAllTimeline.displayName = 'UserAllTimeline';
 
 const styles = StyleSheet.create({
   container: {

@@ -20,6 +20,7 @@ interface TopTabBarProps {
   dragProgress: SharedValue<number>;
   dragState: SharedValue<'idle' | 'dragging' | 'settling'>;
   tabs: { key: string; label: string }[];
+  hiddenHeader?: boolean;
 }
 
 function TopTabBar({
@@ -29,13 +30,14 @@ function TopTabBar({
   onSelectTab,
   dragProgress,
   tabs,
+  hiddenHeader,
 }: TopTabBarProps) {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
-  const topTabBarHeight = useTopTabBarHeight();
+  const topTabBarHeight = hiddenHeader ? 0 : useTopTabBarHeight();
   const headerTransform = useHeaderTransform();
   const { setCurrentIndex } = useTopTabBar();
 
@@ -64,34 +66,36 @@ function TopTabBar({
       ]}
     >
       {tabBarBackground?.()}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={() => {
-            queryClient.clear();
-          }}
-        >
-          <Animated.Text style={[styles.clearButtonText, { color: colors.primary }]}>
-            清除缓存
+      {!hiddenHeader && (
+        <View style={styles.headerContainer}>
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => {
+              queryClient.clear();
+            }}
+          >
+            <Animated.Text style={[styles.clearButtonText, { color: colors.primary }]}>
+              清除缓存
+            </Animated.Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={async () => {
+              await AsyncStorage.removeItem('token');
+              await AsyncStorage.removeItem('server');
+              await AsyncStorage.removeItem('user');
+              navigation.navigate('/auth' as never);
+            }}
+          >
+            <Animated.Text className="text-red-500">登出</Animated.Text>
+          </TouchableOpacity>
+
+          <Animated.Text style={[styles.headerText, { color: colors.text }]}>
+            {headerTitle}
           </Animated.Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={async () => {
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('server');
-            await AsyncStorage.removeItem('user');
-            navigation.navigate('/auth' as never);
-          }}
-        >
-          <Animated.Text className="text-red-500">登出</Animated.Text>
-        </TouchableOpacity>
-
-        <Animated.Text style={[styles.headerText, { color: colors.text }]}>
-          {headerTitle}
-        </Animated.Text>
-      </View>
+        </View>
+      )}
 
       <View style={styles.tabContainer}>
         {tabs.map((tab, index) => {

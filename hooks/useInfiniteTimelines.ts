@@ -9,13 +9,25 @@ export type TimelineEndpoint = keyof Pick<
   | 'notes/local-timeline'
   | 'notes/hybrid-timeline'
   | 'notes/user-list-timeline'
+  | 'users/notes'
 >;
 
-export const useInfiniteTimelines = (endpoint: TimelineEndpoint) => {
+export type TimelineParam = {
+  userId?: string;
+  withChannelNotes?: boolean;
+  withFiles: boolean;
+  withRenotes: boolean;
+  withReplies: boolean;
+};
+
+export const useInfiniteTimelines = (
+  endpoint: TimelineEndpoint,
+  param?: TimelineParam | undefined,
+) => {
   const api = useMisskeyApi();
 
   return useInfiniteQuery({
-    queryKey: [endpoint],
+    queryKey: [endpoint, param],
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       if (!api) throw new Error('API not initialized');
       return await api.request<'notes/timeline', Endpoints[TimelineEndpoint]['req']>(
@@ -23,6 +35,7 @@ export const useInfiniteTimelines = (endpoint: TimelineEndpoint) => {
         {
           limit: 20,
           untilId: pageParam,
+          ...param,
         },
       );
     },
